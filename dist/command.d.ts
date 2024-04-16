@@ -1,1 +1,4 @@
-export declare const command: (cmd: string) => Promise<string>;
+export declare const command: (cmd: string) => Promise<{
+    data: () => string | null;
+    error: () => string | null;
+}>;

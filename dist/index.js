@@ -25149,10 +25149,16 @@ const child_process_1 = __nccwpck_require__(2081);
 const command = (cmd) => new Promise((resolve, reject) => {
     (0, child_process_1.exec)(cmd, (error, stdout) => {
         if (stdout) {
-            resolve(stdout);
+            resolve({
+                data: () => stdout,
+                error: () => null,
+            });
         }
         if (error) {
-            reject(error.message);
+            resolve({
+                data: () => null,
+                error: () => stdout,
+            });
         }
     });
 });
@@ -25189,25 +25195,35 @@ exports.getConfig = getConfig;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
-const fs = __nccwpck_require__(7147);
-const path = __nccwpck_require__(1017);
+const path_1 = __nccwpck_require__(1017);
+const fs_1 = __nccwpck_require__(7147);
 const core = __nccwpck_require__(2186);
 const compare_versions_1 = __nccwpck_require__(4773);
 const command_1 = __nccwpck_require__(8121);
 const config_1 = __nccwpck_require__(6373);
 const run = async () => {
+    let remoteVersion = "0.0.0";
     try {
         const { npmToken, packageName, packageDir, packageFileName } = (0, config_1.getConfig)();
-        const response = await (0, command_1.command)(`npm config set //registry.npmjs.org/:_authToken=${npmToken} && npm view ${packageName} version`);
-        const remoteVersion = response.replace(/\r?\n|\r/g, "");
-        const file = fs.readFileSync(path.join(packageDir, packageFileName), "utf8");
+        const file = (0, fs_1.readFileSync)((0, path_1.join)(packageDir, packageFileName), "utf8");
         const localVersion = JSON.parse(file).version;
+        const response = await (0, command_1.command)(`npm config set //registry.npmjs.org/:_authToken=${npmToken} && npm view ${packageName} version`);
+        const data = response.data();
+        const error = response.error();
+        if (data) {
+            remoteVersion = data.replace(/\r?\n|\r/g, "");
+        }
+        if (error) {
+            if (!error.includes("npm ERR! code E404")) {
+                throw new Error(error);
+            }
+        }
         const version = (0, compare_versions_1.compareVersions)(localVersion, remoteVersion);
         core.debug(`localVersion: ${localVersion}, remoteVersion: ${remoteVersion}, version: ${version}`);
-        if (version > 0) {
-            return core.setOutput("version", localVersion);
+        if (version < 1) {
+            throw new Error("Package version is incorrect.");
         }
-        core.setFailed("Package version is incorrect.");
+        core.setOutput("version", localVersion);
     }
     catch (error) {
         core.setFailed(error.message);
