@@ -1,0 +1,29 @@
+name: "Check Package Version"
+description: "Check whether npm package version is correct before publish."
+author: "Leonardo Montini"
+
+inputs:
+  NPM_TOKEN:
+    description: Secret NPM token for a private registry.
+    default: ""
+    required: true
+  PACKAGE_FILE_NAME:
+    description: Package file name.
+    default: "package.json"
+    required: false
+  PACKAGE_NAME:
+    description: Package name.
+    default: ""
+    required: true
+  PACKAGE_DIR:
+    description: Package directory.
+    default: ""
+    required: true
+
+branding:
+  icon: "package"
+  color: "orange"
+
+runs:
+  using: node16
+  main: dist/index.js
